@@ -159,10 +159,10 @@ class PointnetFPModule(nn.Module):
         Use batchnorm
     """
 
-    def __init__(self, mlp, bn=True, add_bias=True):
+    def __init__(self, mlp, bn=True, add_bias=True, bn_eps=1e-5):
         # type: (PointnetFPModule, List[int], bool) -> None
         super(PointnetFPModule, self).__init__()
-        self.mlp = build_shared_mlp(mlp, bn=bn, add_bias=add_bias, bn_eps=bn_eps)
+        self.mlp = build_shared_mlp(mlp, bn=bn, add_bias=add_bias, bn_eps=bn_eps, bn_eps=bn_eps)
 
     def forward(self, unknown, known, unknow_feats, known_feats):
         # type: (PointnetFPModule, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor) -> torch.Tensor
