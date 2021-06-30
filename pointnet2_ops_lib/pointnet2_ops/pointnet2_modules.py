@@ -6,14 +6,14 @@ import torch.nn.functional as F
 from pointnet2_ops import pointnet2_utils
 
 
-def build_shared_mlp(mlp_spec: List[int], bn: bool = True):
+def build_shared_mlp(mlp_spec: List[int], bn: bool = True, add_bias: bool=True, bn_eps=1e-5):
     layers = []
     for i in range(1, len(mlp_spec)):
         layers.append(
-            nn.Conv2d(mlp_spec[i - 1], mlp_spec[i], kernel_size=1, bias=not bn)
+            nn.Conv2d(mlp_spec[i - 1], mlp_spec[i], kernel_size=1, bias= add_bias)
         )
         if bn:
-            layers.append(nn.BatchNorm2d(mlp_spec[i]))
+            layers.append(nn.BatchNorm2d(mlp_spec[i], bn_eps))
         layers.append(nn.ReLU(True))
 
     return nn.Sequential(*layers)
@@ -91,7 +91,7 @@ class PointnetSAModuleMSG(_PointnetSAModuleBase):
         Use batchnorm
     """
 
-    def __init__(self, npoint, radii, nsamples, mlps, bn=True, use_xyz=True):
+    def __init__(self, npoint, radii, nsamples, mlps, bn=True, use_xyz=True, add_bias=True, bn_eps=1e-5):
         # type: (PointnetSAModuleMSG, int, List[float], List[int], List[List[int]], bool, bool) -> None
         super(PointnetSAModuleMSG, self).__init__()
 
@@ -112,7 +112,7 @@ class PointnetSAModuleMSG(_PointnetSAModuleBase):
             if use_xyz:
                 mlp_spec[0] += 3
 
-            self.mlps.append(build_shared_mlp(mlp_spec, bn))
+            self.mlps.append(build_shared_mlp(mlp_spec, bn, add_bias, bn_eps))
 
 
 class PointnetSAModule(PointnetSAModuleMSG):
@@ -133,7 +133,7 @@ class PointnetSAModule(PointnetSAModuleMSG):
     """
 
     def __init__(
-        self, mlp, npoint=None, radius=None, nsample=None, bn=True, use_xyz=True
+        self, mlp, npoint=None, radius=None, nsample=None, bn=True, use_xyz=True, add_bias=True, bn_eps=1e-5
     ):
         # type: (PointnetSAModule, List[int], int, float, int, bool, bool) -> None
         super(PointnetSAModule, self).__init__(
@@ -143,6 +143,8 @@ class PointnetSAModule(PointnetSAModuleMSG):
             nsamples=[nsample],
             bn=bn,
             use_xyz=use_xyz,
+            add_bias=add_bias,
+            bn_eps=bn_eps
         )
 
 
@@ -157,10 +159,10 @@ class PointnetFPModule(nn.Module):
         Use batchnorm
     """
 
-    def __init__(self, mlp, bn=True):
+    def __init__(self, mlp, bn=True, add_bias=True):
         # type: (PointnetFPModule, List[int], bool) -> None
         super(PointnetFPModule, self).__init__()
-        self.mlp = build_shared_mlp(mlp, bn=bn)
+        self.mlp = build_shared_mlp(mlp, bn=bn, add_bias=add_bias, bn_eps=bn_eps)
 
     def forward(self, unknown, known, unknow_feats, known_feats):
         # type: (PointnetFPModule, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor) -> torch.Tensor
